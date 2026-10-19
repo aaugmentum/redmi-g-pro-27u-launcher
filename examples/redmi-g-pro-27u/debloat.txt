@@ -1,0 +1,59 @@
+# Redmi G Pro 27U monitor (MiTV-MFFU1, codename beekeeper), Android 14 (SDK 34),
+# HyperOS OS3.0.120.0.UFFMAMN, MediaTek. China ROM: no Google Play / GMS.
+# Stock launcher: com.mitv.tvhome/.MainActivityUserMode   Input/source app: com.xiaomi.mitv.tvplayer
+#
+# Apply:   TV_HOST=<monitor ip> tools/disable.sh examples/redmi-g-pro-27u/debloat.txt
+# Undo:    TV_HOST=<monitor ip> tools/restore.sh examples/redmi-g-pro-27u/debloat.txt com.mitv.tvhome
+#          (or examples/redmi-g-pro-27u/restore.sh, which also turns the launcher's Home redirect off)
+# Everything is DISABLED (pm disable-user --user 0), never uninstalled. Comment out a line to keep it.
+# Apply one batch at a time and check DP / USB-C / HDMI, picture settings and the remote after each.
+
+# --- Batch 1: content feeds, shopping, preloaded apps (most are in Xiaomi's own can_be_deleted list)
+com.duokan.videodaily                      # video feed (Xiaomi marks deletable)
+com.xm.webcontent                          # PatchWall web content / promos
+com.mitv.shoplugin                         # shopping plugin
+com.miui.hybrid.tv                         # "quick apps" platform (Xiaomi marks deletable)
+com.xiaomi.gamecenter.sdk.service.mibox    # game center SDK
+com.xiaomi.tweather                        # weather (Xiaomi marks deletable)
+com.xiaomi.mitv.calendar                   # calendar (Xiaomi marks deletable)
+com.xiaomi.mitv.health                     # Mi Health (Xiaomi marks deletable)
+com.mitv.gallery                           # Mi Gallery + its push service (Xiaomi marks deletable)
+com.xiaomi.screenrecorder                  # screen recorder (Xiaomi marks deletable)
+com.xiaomi.mitv.karaoke.service            # karaoke
+com.xiaomi.smarthome.tv                    # Mi Home (your choice: off)
+
+# --- Batch 2: telemetry, log upload, push
+com.miui.tv.analytics                      # BI analytics (~100 MB RAM)
+com.miui.misightservice                    # MiSight diagnostics/telemetry
+com.xiaomi.tvqs                            # "TV Quality System": perf monitor, dropbox + log upload
+com.xiaomi.mitv.tvpush.tvpushservice       # push messages / promos
+com.xiaomi.mitv.healthdiagnosis            # system health diagnosis reporting
+com.mitv.cloudcontrol                      # cloud config + log upload on boot
+
+# --- Batch 3: voice assistant (your choice: off) - far-field mic wake word + Xiao Ai
+com.xiaomi.voicecontrol
+com.xiaomi.wakeupservice
+
+# --- Batch 4: Chinese app store, cleaner, Xiaomi screensavers
+com.xiaomi.mitv.appstore                   # Chinese-only store; Aurora Store replaces it
+com.xiaomi.mitv.tvmanager                  # cleaner/"boost" (~280 MB RAM across 2 processes)
+com.xiaomi.mitv.hyper.screensaver          # replaced by the launcher's clock screensaver
+com.xiaomi.mitv.aod.screensaver
+
+# --- Later, only after their replacements work (NOT applied by the batches above)
+# com.sohu.inputmethod.sogou.tv            # after an English IME is installed and set default
+# com.xiaomi.mitv.upgrade                  # firmware updates: off once setup is finished
+
+# --- Kept on purpose (do not disable)
+# com.mitv.tvhome                         -> stock home. Xiaomi won't let another app be the default home,
+#   and with this off Home lands on FallbackHome, a black screen; the launcher's HomeKeyService redirects Home
+# com.xiaomi.mitv.tvplayer, com.mediatek.tvinput, com.mediatek.tv.service, mitv.service,
+#   com.android.providers.tv              -> DP/USB-C/HDMI picture path and source switching
+# com.xiaomi.mitv.settings                -> picture/sound settings (DisplaySoundActivity)
+# com.xiaomi.mitv.smartpanel              -> quick panel, USB mount handling, TV lock
+# com.mitv.overseaservice                 -> contains a netflixService + BT remote service
+# com.mi.bluetooth                        -> remote pairing
+# com.xiaomi.setupwizard, com.mitv.toolhouse, mediatek.factorymenu.ui, com.android.systemui
+# Casting kept for now: com.xiaomi.mitv.smartshare, com.xiaomi.miplay,
+#   com.xiaomi.hyper_connect.tv, com.xiaomi.mi_connect_service
+# Kept for now: com.xiaomi.account(.auth), com.xiaomi.mitv.mediaexplorer (USB media player)

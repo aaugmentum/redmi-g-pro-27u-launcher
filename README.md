@@ -1,3 +1,15 @@
+> **This is a fork** of [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv) (formerly
+> tv-vibehack), adapted for the **Redmi G Pro 27U** monitor (MiTV-MFFU1, China HyperOS 3, Android 14) by
+> [@aaugmentum](https://github.com/aaugmentum), with Claude Code. On firmware that refuses third-party home
+> screens, its launcher still takes over the Home button, and it keeps it after HyperOS standby. It also:
+> - switches DisplayPort, USB-C and HDMI through Xiaomi's player
+> - opens a brightness bar from the remote's TV button, and an input picker when you hold it
+> - lets you edit the dock from a tile's menu
+>
+> Setup and device notes: [examples/redmi-g-pro-27u](examples/redmi-g-pro-27u/). The launcher here targets
+> Android 10 (targetSdk 29) for the brightness bar, so Google TV may refuse to install it; for any other TV,
+> use the original.
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads." width="800"></a>
 </p>

@@ -14,6 +14,7 @@ on that firmware, grouped and commented. These are starting points: comment out 
 | `oneplus-tv-dubai/` | OnePlus TV (D00, Dubai) | Google TV 14 | HeyTap/OnePlus extras, OnePlus Connect, Smart Home |
 | `philips-smart-4k-google-tv/` | Philips Smart 4K TV (Skyworth, eleonas, MediaTek), India | Google TV 14 | Skyworth recommendations, after-sale/activation trackers, iCast; Chromecast, Assistant off by choice; wireless-debugging pairing, setupwraith |
 | `rca-ai-pont/` | RCA AI PONT SA (Changhong, redwood, ISDB92RC; also sold as realme 40-inch) | Android 14 | Homwee store and installers, Anoki ACR, FAST channels; 1 GB |
+| `redmi-g-pro-27u/` | Redmi G Pro 27U monitor (MiTV-MFFU1, beekeeper, MediaTek), China | Android 14 (HyperOS 3) | No Google services, PatchWall feeds, BI analytics, MiSight, log upload, Xiao Ai voice; third-party home refused, so the launcher redirects Home with its own install script; standby kills third-party apps |
 | `sanyo-atv-r2/` | SANYO ATV R2 (SCBC, Realtek RTD285O) | Android TV 9 | S-Channels, E-SHOW demo, Vewd, TV Booster, SANYO OTA |
 | `sony-bravia-4k-ur2/` | Sony BRAVIA 4K UR2 (BRAVIA_UR2_4K, MediaTek) | Android TV 10 | Samba TV, Sony promos/Select, demo mode; Assistant, Chromecast, unused streaming apps off by choice |
 | `sony-xbr-x900e/` | Sony BRAVIA XBR-65X900E (2017, BRAVIA_ATV2) | Android TV 9 | Samba TV ACR, Sony Select, My BRAVIA promos, Discover, device agents; Chromecast, DLNA, mirroring off by choice |
