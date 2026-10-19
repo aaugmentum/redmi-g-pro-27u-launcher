@@ -10,6 +10,19 @@
 > Android 10 (targetSdk 29) for the brightness bar, so Google TV may refuse to install it; for any other TV,
 > use the original.
 
+<table>
+  <tr><th>Home and dock</th><th>TV button: brightness</th></tr>
+  <tr>
+    <td><img src="examples/redmi-g-pro-27u/screenshots/home.jpg" alt="Home screen with the dock"></td>
+    <td><img src="examples/redmi-g-pro-27u/screenshots/brightness.jpg" alt="Brightness bar from the TV button"></td>
+  </tr>
+  <tr><th>Hold TV: input picker</th><th>Tile menu: edit the dock</th></tr>
+  <tr>
+    <td><img src="examples/redmi-g-pro-27u/screenshots/picker.jpg" alt="Input picker from holding the TV button"></td>
+    <td><img src="examples/redmi-g-pro-27u/screenshots/tile-menu.jpg" alt="Dock editing from a tile's menu"></td>
+  </tr>
+</table>
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads." width="800"></a>
 </p>

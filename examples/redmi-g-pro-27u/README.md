@@ -8,6 +8,22 @@ This folder and the launcher changes in this fork were made for this monitor by
 [@aaugmentum](https://github.com/aaugmentum), with Claude Code. Other China HyperOS TVs from Xiaomi
 probably behave the same, but only this monitor has been tested.
 
+
+## Screenshots
+
+Home and dock, the brightness bar (TV), the input picker (hold TV), and a tile's menu.
+
+<table>
+  <tr>
+    <td><img src="screenshots/home.jpg" alt="Home screen with the dock"></td>
+    <td><img src="screenshots/brightness.jpg" alt="Brightness bar from the TV button"></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/picker.jpg" alt="Input picker from holding the TV button"></td>
+    <td><img src="screenshots/tile-menu.jpg" alt="Dock editing from a tile's menu"></td>
+  </tr>
+</table>
+
 ## What's here
 
 | File | What it does |
