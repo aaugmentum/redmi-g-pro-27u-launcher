@@ -9,7 +9,11 @@ android {
     defaultConfig {
         applicationId 'com.gathin.tvhome'
         minSdk 26
-        targetSdk 34
+        // 29, not upstream's 34: Android picks an app's SELinux domain by its targetSdk, and Xiaomi's firmware lets
+        // only the older domains reach the MediaTek TV service behind the panel backlight (Backlight.java). With
+        // 34 the first backlight read waits 5 s and fails. This fork is for the Redmi G Pro 27U, not Google TV
+        // (which wants 34 to install it).
+        targetSdk 29
         versionCode 3
         versionName '2.2'
     }
@@ -23,6 +27,12 @@ android {
             // Sideloaded over ADB, never published: sign with the debug key so it installs over a debug build.
             signingConfig signingConfigs.debug
         }
+    }
+
+    lint {
+        // Sideloaded over ADB, never published to Google Play, so Play's minimum targetSdk does not apply;
+        // without this, lintVitalRelease fails assembleRelease.
+        disable 'ExpiredTargetSdkVersion'
     }
 
     compileOptions {

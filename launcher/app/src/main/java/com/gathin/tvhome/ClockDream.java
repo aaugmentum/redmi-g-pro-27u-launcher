@@ -18,6 +18,8 @@ import java.util.Random;
 public class ClockDream extends DreamService {
 
     private static final long MOVE_MS = 60_000L;
+    /** True while the clock is on screen; HomeKeyService lets Home through then so it wakes the dream. */
+    static volatile boolean showing;
     /** Deep, low-brightness glow colours; the glow is drawn at partial alpha on black. */
     private static final int[] PALETTE = {0xFF2B5CFF, 0xFF00A39A, 0xFF8A3FFC, 0xFFE0661B, 0xFFD6336C};
 
@@ -49,6 +51,7 @@ public class ClockDream extends DreamService {
         View ambient = findViewById(R.id.dreamAmbient);
         glow = new GradientDrawable();
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        glow.setDither(true);
         ambient.setBackground(glow);
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 glow.setGradientRadius((r - l) * 0.55f));
@@ -59,6 +62,7 @@ public class ClockDream extends DreamService {
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
+        showing = true;
         content.setAlpha(0f);
         content.post(() -> {
             placeClock();
@@ -69,12 +73,14 @@ public class ClockDream extends DreamService {
 
     @Override
     public void onDreamingStopped() {
+        showing = false;
         handler.removeCallbacks(tick);
         super.onDreamingStopped();
     }
 
     @Override
     public void onDetachedFromWindow() {
+        showing = false;
         handler.removeCallbacks(tick);
         super.onDetachedFromWindow();
     }

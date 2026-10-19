@@ -30,8 +30,9 @@ public class GlassView extends View {
         density = getResources().getDisplayMetrics().density;
         radius = 20f * density;
         rim.setStyle(Paint.Style.STROKE);
-        rim.setStrokeWidth(1.5f * density);
-        rim.setColor(0xCCFFFFFF);
+        // 1 dp, a whole pixel each side of the edge at density 2, where the old 1.5 dp (3 px) smeared both sides.
+        rim.setStrokeWidth(Math.max(2f, Math.round(density) * 1f));
+        rim.setColor(0xE6FFFFFF);
         glow.setStyle(Paint.Style.STROKE);
     }
 
@@ -43,8 +44,9 @@ public class GlassView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        fill.setShader(new LinearGradient(0, 0, 0, h, 0x3DFFFFFF, 0x12FFFFFF, Shader.TileMode.CLAMP));
-        specular.setShader(new LinearGradient(0, 0, 0, h * 0.45f, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+        // Light enough that the banner keeps its colours: the glass sits on top of the focused tile.
+        fill.setShader(new LinearGradient(0, 0, 0, h, 0x17FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+        specular.setShader(new LinearGradient(0, 0, 0, h * 0.4f, 0x40FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
     }
 
     @Override
@@ -66,7 +68,7 @@ public class GlassView extends View {
         clip.addRoundRect(rect, radius, radius, Path.Direction.CW);
         canvas.save();
         canvas.clipPath(clip);
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + rect.height() * 0.45f, specular);
+        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + rect.height() * 0.4f, specular);
         canvas.restore();
 
         canvas.drawRoundRect(rect, radius, radius, rim);

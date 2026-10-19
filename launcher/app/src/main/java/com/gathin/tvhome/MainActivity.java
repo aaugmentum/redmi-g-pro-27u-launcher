@@ -9,8 +9,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.tv.TvContract;
@@ -38,6 +45,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LayoutAnimationController;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -58,10 +66,14 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
@@ -71,6 +83,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
+    /** Ambient glow: centre as a fraction of the screen, radius as a fraction of its width. */
+    private static final float GLOW_X = 0.32f, GLOW_Y = 0.42f, GLOW_RADIUS = 0.62f;
+    /** Xiaomi's settings app holds picture, local dimming and sound; Android TV Settings stays in the grid. */
+    private static final String XIAOMI_SETTINGS = "com.xiaomi.mitv.settings";
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -85,6 +101,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     private GradientDrawable ambientGlow;
     private int ambientColor;
+    /**
+     * Dithered copies of the glow by colour, drawn on the CPU off the main thread. The plain gradient bands on
+     * 8-bit panels, and asking the GPU to dither it triples the frame cost on this TV (15 ms instead of 5).
+     */
+    private final Map<Integer, Bitmap> ambientCache = new HashMap<>();
+    private final ExecutorService ambientWorker = Executors.newSingleThreadExecutor();
     private boolean heroShown;
     private TextView greeting;
     private View btnInputs;
@@ -114,8 +136,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Dialog cardPrompt;
     /** Set when a decision could not be saved: no more prompts until the next resume, instead of asking in a loop. */
     private boolean promptsPaused;
-    /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
+    /** The open dropdown (Inputs, Module cards or a tile's menu), or null; one at a time. */
     private PopupWindow openPopup;
+    /** A dropdown or the card prompt was open when the activity paused; see onNewIntent. */
+    private boolean menuAtPause;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -176,6 +200,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        HomeKeyService.ensureEnabled(this);   // opened from the stock home after a standby turned it off
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
@@ -188,17 +213,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
-        root.setBackgroundColor(cfg.backgroundColor);
+        // The window is already black, and every full-screen fill costs GPU time at 1080p.
+        if (cfg.backgroundColor != Color.BLACK) root.setBackgroundColor(cfg.backgroundColor);
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        ambientGlow.setGradientCenter(0.32f, 0.42f);
+        ambientGlow.setGradientCenter(GLOW_X, GLOW_Y);
         ambient.setBackground(ambientGlow);
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
-                ambientGlow.setGradientRadius((r - l) * 0.62f));
+                ambientGlow.setGradientRadius((r - l) * GLOW_RADIUS));
         greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
@@ -275,7 +301,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(new Intent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> {
+            Intent xiaomi = new Intent(Intent.ACTION_MAIN).setClassName(XIAOMI_SETTINGS, XIAOMI_SETTINGS + ".entry.MainActivity");
+            open(resolves(xiaomi) ? xiaomi : new Intent(Settings.ACTION_SETTINGS));
+        });
         btnSettings.setOnLongClickListener(v -> {
             if (!moduleCards) return false;   // off: a long press does nothing, as before the feature
             showModuleCards();
@@ -283,10 +312,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
-        // jump to a tile far below when there is nothing in that direction.
+        // jump to a tile far below when there is nothing in that direction. Down returns to the dock
+        // tile you came up from.
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(lastFocused % COLUMNS);
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 // The left end is Inputs, or Wi-Fi on a box without inputs.
                 return v.getId() == R.id.btnInputs
@@ -350,6 +384,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        menuAtPause = false;   // onNewIntent, which comes before this, has used it
+        dismissPopup();   // e.g. still open when the screensaver ended; its tile may be gone after the reload
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
@@ -374,6 +410,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glassShown = false;
             glass.setAlpha(0f);
             heroShown = false;
+            heroName.animate().cancel();   // a menu's dismissal may have just started fading it back in
             heroName.setAlpha(0f);
             ambient.setAlpha(0f);
         }
@@ -432,8 +469,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
+        // Home pressed in front pauses the activity before onNewIntent, which needs to know a menu was open.
+        menuAtPause = (openPopup != null && openPopup.isShowing()) || cardPrompt != null;
         if (cardPrompt != null) cardPrompt.dismiss();
-        if (openPopup != null) openPopup.dismiss();
+        dismissPopup();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        menuAtPause = false;   // gone to another app: a later Home is not "Home pressed in front"
     }
 
     @Override
@@ -444,6 +489,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onDestroy() {
+        dismissPopup();
+        ambientWorker.shutdownNow();
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -454,9 +501,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Home pressed while the home screen is already in front: close any menu and go back to the dock. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // An open menu held the window focus, and onPause has closed it by now.
+        boolean wasInFront = hasWindowFocus() || menuAtPause;
+        menuAtPause = false;
+        dismissPopup();
+        // A resumed singleTask activity gets onPause, onNewIntent, onResume: point the return slot at the dock
+        // and let onResume focus it, rather than racing it with a focus change of our own.
+        if (wasInFront) {
+            lastFocused %= COLUMNS;
+            lastFocusedKey = adapter.keyAt(lastFocused);
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        // Home screen: Back only brings focus back to the dock.
+        View f = getCurrentFocus();
+        if (f == null || f.getId() != R.id.card || lastFocused >= COLUMNS) focusTile(lastFocused % COLUMNS);
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -469,15 +534,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
         float pad = 6f * density;        // matches GlassView's glow inset
-        float w = card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * pad;
-        float h = card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * pad;
-        float x = r.exactCenterX() - w / 2f;
-        float y = r.exactCenterY() - h / 2f;
+        int w = Math.round(card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * pad);
+        int h = Math.round(card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * pad);
+        // Whole pixels, so the rim rests sharp instead of smeared across two pixel rows.
+        float x = Math.round(r.exactCenterX() - w / 2f);
+        float y = Math.round(r.exactCenterY() - h / 2f);
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
-        if (lp.width != (int) w || lp.height != (int) h) {
-            lp.width = (int) w;
-            lp.height = (int) h;
+        if (lp.width != w || lp.height != h) {
+            lp.width = w;
+            lp.height = h;
             glass.setLayoutParams(lp);
             glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * AppAdapter.FOCUS_SCALE + pad);
         }
@@ -544,9 +610,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void setAmbient(int color) {
+        // Fades end after the activity is gone (their end actions still run); the worker is shut down then.
+        if (isDestroyed() || ambientWorker.isShutdown()) return;
         ambientColor = color;
+        Bitmap dithered = ambientCache.get(color);
+        if (dithered != null) {
+            ambient.setBackground(new BitmapDrawable(getResources(), dithered));
+            return;
+        }
+        // The plain gradient until the dithered copy is ready; the two look the same apart from the bands.
+        ambientGlow.setColors(glowColors(color));
+        ambient.setBackground(ambientGlow);
+        // Half size is enough for a soft glow, and scaling it up keeps the dither noise that breaks the bands.
+        final int w = ambient.getWidth() / 2, h = ambient.getHeight() / 2;
+        if (w == 0 || h == 0) return;
+        ambientWorker.execute(() -> {
+            Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Paint p = new Paint(Paint.DITHER_FLAG);
+            p.setShader(new RadialGradient(w * GLOW_X, h * GLOW_Y, w * GLOW_RADIUS, glowColors(color), null,
+                    Shader.TileMode.CLAMP));
+            new Canvas(b).drawPaint(p);
+            handler.post(() -> {
+                if (isDestroyed()) return;
+                if (ambientCache.size() >= 8) ambientCache.clear();   // the dock's handful of colours
+                ambientCache.put(color, b);
+                if (ambientColor == color) ambient.setBackground(new BitmapDrawable(getResources(), b));
+            });
+        });
+    }
+
+    private static int[] glowColors(int color) {
         int c = color & 0x00FFFFFF;
-        ambientGlow.setColors(new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c});
+        return new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c};
     }
 
     private void hideHero() {
@@ -737,7 +832,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
-        } catch (ActivityNotFoundException e) {
+        } catch (ActivityNotFoundException | SecurityException e) {   // missing, or not exported on this firmware
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
     }
@@ -775,7 +870,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean sawNonHdmi = false;
         String tunerId = null;
         boolean tunerIsHw = false;
-        if (tim != null) {
+        if (tim != null && !addXiaomiInputs(rows, popup, tim)) {
             List<TvInputInfo> inputs = new ArrayList<>(tim.getTvInputList());
             // HDMI ports first in port order, then AV and the rest.
             Collections.sort(inputs, (a, b) -> {
@@ -832,6 +927,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
         }
         if (rows.getChildCount() == 0) {
+            dismissPopup();   // never shown, so no dismiss listener would clear it
             Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -844,7 +940,102 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.getChildAt(0).requestFocus();
     }
 
+    /** Xiaomi's own source ids where nothing opens passthrough URIs (see XiaomiInputs); false elsewhere. */
+    private boolean addXiaomiInputs(LinearLayout rows, PopupWindow popup, TvInputManager tim) {
+        if (!XiaomiInputs.usable(this)) return false;
+        List<XiaomiInputs.Source> sources = XiaomiInputs.list(tim);
+        for (int i = 0; i < sources.size(); i++) {
+            XiaomiInputs.Source s = sources.get(i);
+            if (i > 0 && s.hdmi && !sources.get(i - 1).hdmi) addSeparator(rows);
+            addInputRow(rows, popup, R.drawable.ic_input, s.label, s.state, () -> open(XiaomiInputs.intent(s.id)));
+        }
+        return true;
+    }
+
+    /** True when an enabled activity handles the intent (a disabled package still counts as installed). */
+    private boolean resolves(Intent i) {
+        return getPackageManager().resolveActivity(i, PackageManager.MATCH_DEFAULT_ONLY) != null;
+    }
+
+    // ---- tile menu -------------------------------------------------------------------------------
+
+    /** Long press or Menu on a tile: arrange the dock, or open the app's info page. */
+    @Override
+    public void onTileMenu(int position, View card) {
+        if (openPopup != null && openPopup.isShowing()) return;
+        final String key = adapter.keyAt(position);
+        final String pkg = adapter.pkgAt(position);
+        if (key == null || !adapter.hasMenu(position)) return;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        int width = (int) (200 * density);
+        // The menu opens where the dock app's big name sits, so the name steps aside while it is open.
+        final PopupWindow popup = glassPopup(panel, width, () -> {
+            if (heroShown) heroName.animate().alpha(1f).setDuration(200).start();
+        });
+        if (heroShown) heroName.animate().alpha(0f).setDuration(120).start();
+
+        // Pinned apps can sit outside the dock (a pinned app that wasn't installed yet took their slot), so
+        // Remove is offered wherever a pinned app is; moving only within the dock.
+        if (adapter.isPinned(position)) {
+            if (adapter.canMove(position, -1)) {
+                addInputRow(rows, popup, R.drawable.ic_left, getString(R.string.move_left), -1,
+                        () -> afterDockChange(key, pos -> adapter.move(pos, -1)));
+            }
+            if (adapter.canMove(position, 1)) {
+                addInputRow(rows, popup, R.drawable.ic_right, getString(R.string.move_right), -1,
+                        () -> afterDockChange(key, pos -> adapter.move(pos, 1)));
+            }
+            addInputRow(rows, popup, R.drawable.ic_remove, getString(R.string.remove_from_dock), -1,
+                    () -> afterDockChange(key, adapter::unpin));
+        } else {
+            addInputRow(rows, popup, R.drawable.ic_add, getString(R.string.add_to_dock), -1,
+                    () -> afterDockChange(key, pos -> {
+                        if (!adapter.pin(pos)) Toast.makeText(this, R.string.dock_full, Toast.LENGTH_LONG).show();
+                    }));
+        }
+        addSeparator(rows);
+        addInputRow(rows, popup, R.drawable.ic_info, getString(R.string.app_info), -1,
+                () -> open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        width = Math.max(width, panel.getMeasuredWidth());
+        popup.setWidth(width);
+        int height = panel.getMeasuredHeight();
+
+        // Beside the glass, not over it: above tiles in the lower half of the screen (the dock), else below.
+        Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
+        root.offsetDescendantRectToMyCoords(card, r);
+        int gap = (int) (card.getHeight() * (AppAdapter.FOCUS_SCALE - 1f) / 2f + 16 * density);
+        int margin = (int) (24 * density);
+        int x = Math.max(margin, Math.min(r.centerX() - width / 2, root.getWidth() - width - margin));
+        boolean above = r.centerY() > root.getHeight() / 2;
+        int y = above ? r.top - gap - height : r.bottom + gap;
+        popup.showAtLocation(root, Gravity.NO_GRAVITY, x, Math.max(margin, y));
+        reveal(panel, !above);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Applies a dock edit (which reloads the tiles), then puts focus back on the app wherever it went. */
+    private void afterDockChange(String key, java.util.function.IntConsumer change) {
+        int at = adapter.positionOf(key);   // where the app is now: the list may have changed since the menu opened
+        if (at < 0) return;
+        change.accept(at);
+        grid.post(() -> {
+            int pos = adapter.positionOf(key);
+            if (pos >= 0) focusTile(pos);
+        });
+    }
+
+    // ---- dropdowns -------------------------------------------------------------------------------
+
     private PopupWindow glassPopup(View panel, int width) {
+        return glassPopup(panel, width, null);
+    }
+
+    /** A focusable dropdown; it closes any other first. */
+    private PopupWindow glassPopup(View panel, int width, Runnable onDismiss) {
+        dismissPopup();
         final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
         popup.setOutsideTouchable(true);
@@ -852,20 +1043,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setElevation(0f);
         popup.setOnDismissListener(() -> {
             if (openPopup == popup) openPopup = null;
+            if (onDismiss != null) onDismiss.run();
         });
         openPopup = popup;
         return popup;
     }
 
+    private void dismissPopup() {
+        if (openPopup != null) openPopup.dismiss();   // the dismiss listener clears the field
+        openPopup = null;
+    }
+
     /** Drop in: fade and unfold from the top edge, hanging under the anchor pill. */
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
-        panel.setAlpha(0f);
-        panel.setPivotY(0f);
-        panel.setScaleY(0.92f);
-        panel.setTranslationY(-8 * density);
         popup.showAsDropDown(anchor, 0, (int) (10 * density), gravity);
-        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+        reveal(panel, true);
+    }
+
+    /** Fade and unfold from the edge nearest its anchor: the top when it drops down, else the bottom. */
+    private void reveal(View panel, boolean fromTop) {
+        panel.setAlpha(0f);
+        panel.post(() -> {
+            panel.setPivotY(fromTop ? 0f : panel.getHeight());
+            panel.setScaleY(0.92f);
+            panel.setTranslationY((fromTop ? -8 : 8) * density);
+            panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
+                    .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+        });
     }
 
     private void addSeparator(LinearLayout rows) {

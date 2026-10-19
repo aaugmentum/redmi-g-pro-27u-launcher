@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BrightnessOverlay, measured off a screenshot of the firmware's volume bar: same card, number, track and
+     spacing. The outer frame is the window: a window's root view gets the window's WRAP_CONTENT size, so the
+     fixed size sits on the card inside it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <FrameLayout
+        android:layout_width="45dp"
+        android:layout_height="324dp"
+        android:background="@drawable/level_panel">
+
+        <!-- Placed by its baseline, so the font's line metrics don't move it (BrightnessOverlay sets it again for
+             its font); Android 8 has no firstBaselineToTopHeight and uses the padding, about the same. -->
+        <TextView
+            android:id="@+id/value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:includeFontPadding="false"
+            android:paddingTop="12.5dp"
+            android:firstBaselineToTopHeight="@dimen/brightness_baseline"
+            android:textColor="#FFFFFFFF"
+            android:textSize="19.5sp"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
+            android:fontFeatureSettings="tnum" />
+
+        <com.gathin.tvhome.LevelBar
+            android:id="@+id/bar"
+            android:layout_width="3dp"
+            android:layout_height="240dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="43dp" />
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="293dp"
+            android:src="@drawable/ic_brightness"
+            android:contentDescription="@null" />
+    </FrameLayout>
+</FrameLayout>

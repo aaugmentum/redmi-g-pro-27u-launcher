@@ -7,6 +7,7 @@
     <string name="choose_input">Quellen</string>
     <string name="connected">Verbunden</string>
     <string name="standby">Standby</string>
+    <string name="input_hub">Media Hub</string>
     <string name="not_connected">Kein Gerät</string>
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">Keine Quellen gefunden</string>
@@ -21,4 +22,10 @@
     <string name="date_format">EEEE, d. MMMM</string>
     <string name="dream_name">Uhr</string>
     <string name="input_key_service_description">Öffnet die Quellenauswahl, wenn die Input-Taste der Fernbedienung gedrückt wird.</string>
+    <string name="move_left">Nach links</string>
+    <string name="move_right">Nach rechts</string>
+    <string name="add_to_dock">Zum Dock hinzufügen</string>
+    <string name="remove_from_dock">Aus dem Dock entfernen</string>
+    <string name="app_info">App-Info</string>
+    <string name="dock_full">Das Dock ist voll. Entferne zuerst eine App daraus.</string>
 </resources>

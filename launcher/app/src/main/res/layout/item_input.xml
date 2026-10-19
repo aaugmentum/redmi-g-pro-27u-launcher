@@ -45,7 +45,8 @@
         android:layout_height="wrap_content"
         android:textColor="@drawable/pill_text_dim"
         android:duplicateParentState="true"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:fontFamily="@font/outfit"
-        android:letterSpacing="0.04" />
+        android:fontVariationSettings="'wght' 500"
+        android:letterSpacing="0.02" />
 </LinearLayout>

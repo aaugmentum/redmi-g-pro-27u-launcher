@@ -46,6 +46,7 @@
             android:textColor="#FFFFFFFF"
             android:textSize="13sp"
             android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 500"
             android:visibility="gone" />
     </FrameLayout>
 

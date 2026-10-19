@@ -8,6 +8,8 @@
     <string name="connected">Connected</string>
     <string name="standby">Standby</string>
     <string name="not_connected">No device</string>
+    <!-- Input picker row that goes back to the monitor's own apps, i.e. this launcher. -->
+    <string name="input_hub">Media Hub</string>
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">No inputs found</string>
     <string name="good_morning">Good morning</string>
@@ -26,7 +28,7 @@
     <string name="home_settings_help">Choose a home screen in system settings, then press Home.</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="home_key_name">Home button</string>
-    <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
+    <string name="home_key_description">Makes the remote\'s Home button open this launcher, also on TVs that won\'t let you change the default home app. On Xiaomi monitors the TV button opens a brightness bar, and holding it opens an input picker.</string>
     <string name="card_prompt_title">New card from %1$s</string>
     <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
     <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
@@ -46,4 +48,11 @@
     <string name="card_state_new">New</string>
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
+    <string name="move_left">Move left</string>
+    <string name="move_right">Move right</string>
+    <string name="add_to_dock">Add to dock</string>
+    <string name="remove_from_dock">Remove from dock</string>
+    <string name="app_info">App info</string>
+    <string name="dock_full">The dock is full. Remove an app from it first.</string>
+    <string name="home_key_restore_name">Home button restore</string>
 </resources>

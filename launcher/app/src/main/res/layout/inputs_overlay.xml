@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- InputsOverlay: item_input rows on the volume bar's card. The outer frame is the window: a window's root
+     view gets the window's WRAP_CONTENT size, so the fixed width sits on the card inside it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/rows"
+        android:layout_width="210dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/level_panel"
+        android:padding="6dp" />
+</FrameLayout>

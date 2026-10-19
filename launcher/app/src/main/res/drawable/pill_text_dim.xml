@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Secondary text (input status): readable on the white focused row and on the dark panel. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true" android:color="#99111111" />
-    <item android:color="#73FFFFFF" />
+    <item android:state_focused="true" android:color="#B3111111" />
+    <item android:state_selected="true" android:color="#B3111111" />
+    <item android:color="#A6FFFFFF" />
 </selector>

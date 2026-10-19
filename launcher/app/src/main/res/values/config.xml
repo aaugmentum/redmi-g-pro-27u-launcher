@@ -4,25 +4,28 @@
   Or leave it and push a theme instead: tools/theme.sh themes/<name> puts a config.json (same keys, see
   themes/README.md) and an optional wallpaper on the TV, and the launcher overlays it at start.
   Package names: on the TV run `pm list packages` (tools/tv.py 'pm list packages').
+  Configured for the Redmi G Pro 27U monitor (MiTV-MFFU1, China HyperOS 3).
 -->
 <resources>
 
-    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
+    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. This is only the
+         starting set: once the dock is edited from a tile's menu (long press OK, or Menu), the saved order wins
+         until this list (or a theme's dock_apps) changes; clearing the app's data also starts over from here. -->
     <string-array name="dock_apps">
+        <item>org.smarttube.stable</item>
+        <item>com.apple.atve.androidtv.appletv</item>
+        <item>org.jellyfin.androidtv</item>
         <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
-        <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
     </string-array>
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
     <string-array name="hidden_apps">
-        <item>com.mediatek.wwtv.tvcenter</item>
-        <item>com.mitv.gallery</item>
+        <item>org.liskovsoft.androidtv.rukeyboard</item>
     </string-array>
 
-    <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
-    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
+    <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit.
+         This monitor has no tuner; DP, USB-C and HDMI go through Xiaomi's tvplayer (MainActivity.addXiaomiInputs). -->
+    <string name="live_tv_package" translatable="false"></string>
 
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
          resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
