@@ -86,11 +86,15 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
 
 ## To do
 
-- **Remote's voice button.** Use the mic button for voice input in English and Russian. The remote's mic is
-  an audio input on the monitor ("RC In"); the speech model (on the monitor, on a PC, or a cloud API) is
-  still to be chosen.
-- **A TV-friendly app store.** Aurora Store works but isn't built for a remote, and it only installs without
-  a prompt while Shizuku runs, which stops at every standby.
+- **Remote's voice button.** Hold the mic button to type English or Russian into the field in focus, all on
+  the monitor. Designed in [docs/specs/voice-input.md](../../docs/specs/voice-input.md): the button reaches
+  the launcher, and a 128 MB FastConformer model transcribes both languages at better than twice real time
+  on this chip.
+- **App updates without Shizuku.** Aurora updates an app without asking only if Android lists Aurora as
+  that app's installer. Apps installed over adb list none, and `pm set-installer` refuses to name Aurora, but
+  reinstalling an app over itself with `pm install -r -i com.aurora.store` does it, keeping the app's data.
+  Then set Aurora's installer to Session. Put this in a script; check that updates then skip the prompt.
+- **A TV-friendly app store.** Aurora isn't built for a remote. Aptoide TV is, but has its own catalogue.
 - **Act as the monitor's DDC/CI.** The monitor doesn't answer DDC/CI over DisplayPort, so the PC can't set
   its brightness or input. Idea: a service on the monitor that takes commands from the PC over Bluetooth or
   USB, plus a PC-side shim that makes it look like DDC/CI, so the usual tools (ddcutil, Monitorian, Twinkle
