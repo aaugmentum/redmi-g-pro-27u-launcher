@@ -162,6 +162,7 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         prefs(this).edit().putBoolean(PREF_OFF, false).apply();
+        Keyboards.restore(this);
         brightness = new BrightnessOverlay(this);
         inputs = new InputsOverlay(this, this::goHome);
         warmUpBacklight(6);   // at boot the TV service may not be up yet: about a minute

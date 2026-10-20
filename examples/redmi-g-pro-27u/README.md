@@ -67,6 +67,9 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
 - **Input picker.** Hold the TV button for half a second, from any app or input, for a list styled like
   the brightness bar: Media Hub (the launcher), then the ports, with a dot on the ones with a signal.
   Up/Down pick, OK switches; Back, a few idle seconds or any key but the arrows close it.
+- **Keyboard.** The standby force-stop also hits your keyboard app, and Android then switches back to the
+  system keyboard (Sogou). The launcher remembers the third-party keyboard you set and makes it the default
+  again when it comes back after standby (`Keyboards.java`).
 - **Settings.** The Settings pill opens Xiaomi's settings app, which has the picture, local dimming and
   sound settings.
 - **Dock.** Hold OK (or press Menu) on a tile to add it to the dock, move it, remove it, or open its app info.
@@ -80,3 +83,17 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
 - `adb shell input keyevent HOME` skips accessibility key filters, so it doesn't test the Home redirect;
   press Home on the remote instead.
 - The monitor does not answer DDC/CI over DisplayPort.
+
+## To do
+
+- **Remote's voice button.** Use the mic button for voice input in English and Russian. The remote's mic is
+  an audio input on the monitor ("RC In"); the speech model (on the monitor, on a PC, or a cloud API) is
+  still to be chosen.
+- **A TV-friendly app store.** Aurora Store works but isn't built for a remote, and it only installs without
+  a prompt while Shizuku runs, which stops at every standby.
+- **Act as the monitor's DDC/CI.** The monitor doesn't answer DDC/CI over DisplayPort, so the PC can't set
+  its brightness or input. Idea: a service on the monitor that takes commands from the PC over Bluetooth or
+  USB, plus a PC-side shim that makes it look like DDC/CI, so the usual tools (ddcutil, Monitorian, Twinkle
+  Tray, Lunar) and the OS brightness keys work. Real DDC/CI travels over the video cable, which Android
+  can't reach, so the PC side has to translate.
+- **Merge upstream v2.3** (Settings button, reduced motion, GPU focus highlight, more translations).
