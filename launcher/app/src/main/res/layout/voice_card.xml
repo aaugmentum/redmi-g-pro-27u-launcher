@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- VoiceOverlay: a pill at the bottom of the screen. The 40dp badge sits 12dp in from the 64dp pill's ends, so
+     its circle is concentric with the pill's rounded end. Its frame is 56dp, room for the halo to grow from the
+     badge's size to the frame's without drawing outside it. The pill's minimum width fits "Recognizing…" and the
+     language code, so the pill keeps its size from listening to recognizing, the code at its end. The outer frame is
+     the window: a window's root view gets the window's WRAP_CONTENT size. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/voice_pill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="280dp"
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/voice_pill"
+        android:paddingStart="4dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <View
+                android:id="@+id/voice_halo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/voice_dot"
+                android:alpha="0.22"
+                android:scaleX="0.714"
+                android:scaleY="0.714" />
+
+            <View
+                android:id="@+id/voice_badge"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:background="@drawable/voice_dot" />
+
+            <ImageView
+                android:id="@+id/voice_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_mic"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/voice_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:maxWidth="600dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="3dp"
+            android:textColor="#FFFFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/voice_code"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:background="@drawable/voice_code"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+</FrameLayout>

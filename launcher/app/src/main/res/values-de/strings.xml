@@ -28,4 +28,8 @@
     <string name="remove_from_dock">Aus dem Dock entfernen</string>
     <string name="app_info">App-Info</string>
     <string name="dock_full">Das Dock ist voll. Entferne zuerst eine App daraus.</string>
+    <!-- Voice input card (remote's mic button) -->
+    <string name="voice_listening">Ich höre zu…</string>
+    <string name="voice_working">Erkenne…</string>
+    <string name="voice_nothing">Nicht verstanden</string>
 </resources>

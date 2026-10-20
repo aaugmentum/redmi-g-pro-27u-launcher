@@ -27,4 +27,8 @@
     <string name="input_key_service_description">Открывает список источников при нажатии кнопки выбора источника на пульте.</string>
     <string name="home_key_name">Кнопка «Домой»</string>
     <string name="home_key_description">Кнопка «Домой» на пульте открывает этот главный экран.</string>
+    <!-- Voice input card (remote's mic button) -->
+    <string name="voice_listening">Слушаю…</string>
+    <string name="voice_working">Распознаю…</string>
+    <string name="voice_nothing">Не расслышал</string>
 </resources>

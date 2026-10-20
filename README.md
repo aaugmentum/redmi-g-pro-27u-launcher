@@ -4,6 +4,7 @@
 > screens, its launcher still takes over the Home button, and it keeps it after HyperOS standby. It also:
 > - switches DisplayPort, USB-C and HDMI through Xiaomi's player
 > - opens a brightness bar from the remote's TV button, and an input picker when you hold it
+> - types what you say while you hold the remote's mic button, English or Russian, recognised offline on the monitor
 > - lets you edit the dock from a tile's menu
 >
 > Setup and device notes: [examples/redmi-g-pro-27u](examples/redmi-g-pro-27u/). The launcher here targets

@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -30,7 +31,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
  *   settings put secure accessibility_enabled 1
  * The remote's TV button opens the brightness bar ({@link BrightnessOverlay}); held, the input picker
- * ({@link InputsOverlay}).
+ * ({@link InputsOverlay}). Holding its mic button types what you say, and a tap switches the language
+ * ({@link VoiceInput}).
  * HyperOS force-stops every third-party app at standby, and Android then turns this service off; to have the
  * launcher turn it back on (see {@link HomeKeyRestorer}), also run:
  *   pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS
@@ -60,14 +62,17 @@ public class HomeKeyService extends AccessibilityService {
     private static final int TV_KEY = 317;
     /** How long TV is held for the input picker instead of the brightness bar. */
     private static final long HOLD_MS = 500;
+    /** The mic button of the same remote: no Android keycode (KEYCODE_UNKNOWN), scancode 63 (KEY_F5). */
+    private static final int MIC_SCAN = 63;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private BrightnessOverlay brightness;
     private InputsOverlay inputs;
+    private VoiceInput voice;
     /**
      * Whether this press of TV, or of Home, is ours. Decided on its down and kept for its repeats and up, so a
      * press is never split between this service and the firmware (the dream ends, the backlight comes up mid-press).
      */
-    private boolean tvTaken, homeTaken;
+    private boolean tvTaken, homeTaken, micTaken;
     /** This TV press was held long enough to open the picker; its up then does nothing more. */
     private boolean tvHeld;
     /** The key whose down an overlay took: its up goes there too, and stays from the app if the overlay has closed. */
@@ -86,6 +91,18 @@ public class HomeKeyService extends AccessibilityService {
         int code = event.getKeyCode();
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         boolean first = down && event.getRepeatCount() == 0;
+        if (code == KeyEvent.KEYCODE_UNKNOWN && event.getScanCode() == MIC_SCAN) {
+            // Without the model or the mic permission, or over the screensaver, the firmware keeps the button.
+            if (first) micTaken = !ClockDream.showing && voice.available();
+            if (!micTaken) return false;
+            if (first) {
+                voice.press();
+            } else if (!down) {
+                micTaken = false;
+                voice.release();
+            }
+            return true;
+        }
         if (code == TV_KEY) {
             if (first) {
                 // Not over the clock screensaver: let the key through to wake it, as Home is. Nor before the
@@ -165,6 +182,17 @@ public class HomeKeyService extends AccessibilityService {
         Keyboards.restore(this);
         brightness = new BrightnessOverlay(this);
         inputs = new InputsOverlay(this, this::goHome);
+        voice = new VoiceInput(this, new VoiceInput.Typist() {
+            @Override
+            public AccessibilityNodeInfo field() {
+                return focusedField();
+            }
+
+            @Override
+            public boolean type(AccessibilityNodeInfo field, String text) {
+                return typeInto(field, text);
+            }
+        });
         warmUpBacklight(6);   // at boot the TV service may not be up yet: about a minute
         if (!bounceStockHomeInFront()) handler.postDelayed(this::bounceStockHomeInFront, 1000);
     }
@@ -172,6 +200,28 @@ public class HomeKeyService extends AccessibilityService {
     /** Whether Xiaomi's source player is in front, i.e. a port is on screen rather than an app. */
     private boolean playerInFront() {
         return frontPackage == null || XiaomiInputs.PLAYER.equals(frontPackage);
+    }
+
+    /** The editable text field in focus, or null; never a password field, whose text reads as dots. */
+    private AccessibilityNodeInfo focusedField() {
+        AccessibilityNodeInfo field = findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        return field != null && field.isEditable() && !field.isPassword() ? field : null;
+    }
+
+    /** Voice input's text, added to the end of {@code field} if it still has focus. */
+    private boolean typeInto(AccessibilityNodeInfo field, String text) {
+        AccessibilityNodeInfo now = focusedField();   // fresh: the text may have changed since
+        if (field == null || !field.equals(now)) return false;
+        CharSequence old = now.isShowingHintText() ? null : now.getText();
+        String merged = VoiceText.merge(old == null ? "" : old.toString(), text);
+        Bundle args = new Bundle();
+        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, merged);
+        if (!now.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) return false;
+        Bundle end = new Bundle();   // the cursor after the new words, for typing on or a second phrase
+        end.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, merged.length());
+        end.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, merged.length());
+        now.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, end);
+        return true;
     }
 
     /** False when there was no window to look at. */
@@ -188,6 +238,7 @@ public class HomeKeyService extends AccessibilityService {
         handler.removeCallbacksAndMessages(null);
         if (brightness != null) brightness.dismiss();
         if (inputs != null) inputs.dismiss();
+        if (voice != null) voice.dismiss();
         prefs(this).edit().putBoolean(PREF_OFF, true).commit();   // before the process can go
         return super.onUnbind(intent);
     }

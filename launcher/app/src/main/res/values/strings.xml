@@ -28,7 +28,7 @@
     <string name="home_settings_help">Choose a home screen in system settings, then press Home.</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="home_key_name">Home button</string>
-    <string name="home_key_description">Makes the remote\'s Home button open this launcher, also on TVs that won\'t let you change the default home app. On Xiaomi monitors the TV button opens a brightness bar, and holding it opens an input picker.</string>
+    <string name="home_key_description">Makes the remote\'s Home button open this launcher, also on TVs that won\'t let you change the default home app. On Xiaomi monitors the TV button opens a brightness bar, and holding it opens an input picker. Holding the mic button types what you say.</string>
     <string name="card_prompt_title">New card from %1$s</string>
     <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
     <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
@@ -55,4 +55,8 @@
     <string name="app_info">App info</string>
     <string name="dock_full">The dock is full. Remove an app from it first.</string>
     <string name="home_key_restore_name">Home button restore</string>
+    <!-- Voice input card (remote's mic button) -->
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_working">Recognizing…</string>
+    <string name="voice_nothing">Didn\'t catch that</string>
 </resources>

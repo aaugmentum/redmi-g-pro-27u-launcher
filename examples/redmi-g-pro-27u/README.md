@@ -70,6 +70,15 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
 - **Keyboard.** The standby force-stop also hits your keyboard app, and Android then switches back to the
   system keyboard (Sogou). The launcher remembers the third-party keyboard you set and makes it the default
   again when it comes back after standby (`Keyboards.java`).
+- **Voice input.** Hold the remote's mic button, speak, let go: the words are typed into the text field in
+  focus (SmartTube search, a browser), or shown on a card when there is none. A tap of the button switches
+  between English and Russian (the card shows EN or RU while listening). Speech is recognised on the monitor,
+  offline, by NVIDIA's NeMo models through sherpa-onnx: Parakeet TDT-CTC 110M for English and the FastConformer
+  for ten European languages for Russian (that one writes accented English in Cyrillic, hence two). The install
+  script downloads them once and puts them on the monitor (about 260 MB; `VOICE=0` skips it). The first use
+  after switching language, or after ten idle minutes, waits six to ten seconds for the model to load.
+  Xiaomi's Bluetooth app `com.mi.bluetooth` carries the remote's audio and must stay enabled. Design and
+  measurements: [docs/specs/voice-input.md](../../docs/specs/voice-input.md).
 - **Settings.** The Settings pill opens Xiaomi's settings app, which has the picture, local dimming and
   sound settings.
 - **Dock.** Hold OK (or press Menu) on a tile to add it to the dock, move it, remove it, or open its app info.
@@ -83,13 +92,21 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
 - `adb shell input keyevent HOME` skips accessibility key filters, so it doesn't test the Home redirect;
   press Home on the remote instead.
 - The monitor does not answer DDC/CI over DisplayPort.
+- **New installs from Aurora's Session installer never finish** (updates do). Android asks Xiaomi's package
+  installer to confirm, but on Android 14 it can't read the waiting install's path (it lacks
+  `READ_INSTALLED_SESSION_PATHS`), logs "Session -1 in funky state" and closes; Aurora shows "installing"
+  forever. Over adb, the shell user can accept the waiting session with
+  `IPackageInstaller.setPermissionsResult(sessionId, true)`.
 
 ## To do
 
-- **Remote's voice button.** Hold the mic button to type English or Russian into the field in focus, all on
-  the monitor. Designed in [docs/specs/voice-input.md](../../docs/specs/voice-input.md): the button reaches
-  the launcher, and a 128 MB FastConformer model transcribes both languages at better than twice real time
-  on this chip.
+- **New installs without adb.** Try Aurora's Native installer: it sends the classic install request, which
+  Xiaomi's installer handles on its own (it then makes its own install session, so the path problem above
+  doesn't arise). Expected cost: a confirm dialog for updates too, and Aurora must be in front when the
+  download finishes.
+- **Faster voice model loading.** Loading takes six to ten seconds, mostly ONNX Runtime optimising the model
+  for the chip. Try models converted ahead of time to ONNX Runtime's `.ort` format.
+- **Voice without a text field:** send the words to SmartTube's search.
 - **App updates without Shizuku.** Aurora updates an app without asking only if Android lists Aurora as
   that app's installer. Apps installed over adb list none, and `pm set-installer` refuses to name Aurora, but
   reinstalling an app over itself with `pm install -r -i com.aurora.store` does it, keeping the app's data.

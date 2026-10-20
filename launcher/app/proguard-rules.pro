@@ -2,3 +2,6 @@
 # AndroidX code, not from renaming, and readable stack traces matter more in a sideloaded app
 # where crash reports arrive as screenshots.
 -dontobfuscate
+
+# sherpa-onnx (VoiceInput): its native code reads the config classes' fields by name.
+-keep class com.k2fsa.sherpa.onnx.** { *; }
