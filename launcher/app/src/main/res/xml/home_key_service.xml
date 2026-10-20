@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- HomeKeyService: filter key events for Home and the TV button (brightness bar, input picker), watch window
-     changes for the stock home screen and for the app in front (which the picker starts on).
+     changes for the stock home screen and for the app in front (which the picker starts on), and focus moving to
+     a text field, which starts loading the voice model.
      Window content is read on connect, for the package of the screen in front, and for voice input's text
      field. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewFocused"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagRequestFilterKeyEvents"
     android:canRequestFilterKeyEvents="true"

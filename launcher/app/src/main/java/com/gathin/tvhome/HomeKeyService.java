@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.EditText;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -245,6 +246,12 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+            // Text fields, a browser's too, report themselves as EditText.
+            if (voice != null && EditText.class.getName().contentEquals(String.valueOf(event.getClassName()))
+                    && !event.isPassword()) voice.warmUp();
+            return;
+        }
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || event.getClassName() == null) return;
         String cls = event.getClassName().toString();
         CharSequence pkg = event.getPackageName();

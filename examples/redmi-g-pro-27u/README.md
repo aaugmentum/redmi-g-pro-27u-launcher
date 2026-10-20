@@ -75,8 +75,11 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
   between English and Russian (the card shows EN or RU while listening). Speech is recognised on the monitor,
   offline, by NVIDIA's NeMo models through sherpa-onnx: Parakeet TDT-CTC 110M for English and the FastConformer
   for ten European languages for Russian (that one writes accented English in Cyrillic, hence two). The install
-  script downloads them once and puts them on the monitor (about 260 MB; `VOICE=0` skips it). The first use
-  after switching language, or after ten idle minutes, waits six to ten seconds for the model to load.
+  script downloads them once, converts them to ONNX Runtime's `.ort` format (which loads about 2 s sooner; it
+  needs Python 3 on the PC, and without it the `.onnx` models are used) and puts them on the monitor (about
+  260 MB; `VOICE=0` skips it). The model starts loading when a text field gets focus, so it's usually ready
+  by the time you hold the button; otherwise the first use after switching language, or after ten idle
+  minutes, waits about five seconds (six to ten with the `.onnx` models).
   Xiaomi's Bluetooth app `com.mi.bluetooth` carries the remote's audio and must stay enabled. Design and
   measurements: [docs/specs/voice-input.md](../../docs/specs/voice-input.md).
 - **Settings.** The Settings pill opens Xiaomi's settings app, which has the picture, local dimming and
@@ -104,8 +107,6 @@ To undo everything: `TV=<ip> examples/redmi-g-pro-27u/restore.sh`.
   Xiaomi's installer handles on its own (it then makes its own install session, so the path problem above
   doesn't arise). Expected cost: a confirm dialog for updates too, and Aurora must be in front when the
   download finishes.
-- **Faster voice model loading.** Loading takes six to ten seconds, mostly ONNX Runtime optimising the model
-  for the chip. Try models converted ahead of time to ONNX Runtime's `.ort` format.
 - **Voice without a text field:** send the words to SmartTube's search.
 - **App updates without Shizuku.** Aurora updates an app without asking only if Android lists Aurora as
   that app's installer. Apps installed over adb list none, and `pm set-installer` refuses to name Aurora, but

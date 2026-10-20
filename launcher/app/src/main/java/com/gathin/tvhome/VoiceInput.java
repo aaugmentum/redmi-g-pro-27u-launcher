@@ -63,8 +63,20 @@ final class VoiceInput {
 
     /** A model is installed and the mic allowed; otherwise the button is left to the firmware. */
     boolean available() {
-        return !closed && language() != null
-                && context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        return ready() != null;
+    }
+
+    /** A text field got focus: dictation may come next, so the model starts loading now, as that takes seconds. */
+    void warmUp() {
+        String language = ready();
+        if (language != null) engine.prepare(language);
+    }
+
+    /** The language to dictate in, or null when voice input can't run. */
+    private String ready() {
+        if (closed || context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) return null;
+        return language();
     }
 
     /** The button went down. */

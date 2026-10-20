@@ -116,6 +116,13 @@ Changes from the design above, after the measurements on the user's speech:
 - **A lone sentence loses its full stop** (`VoiceText.tidy`): Parakeet punctuates, a search box doesn't want it.
 - **The card** is a pill with a mic badge; a halo follows the mic level (-55 to -30 dBFS) while listening and
   breathes while recognizing, and the language code sits at the pill's end.
+- **Loading:** the install script converts each model to ONNX Runtime's `.ort` format on the PC (Python
+  onnxruntime 1.28.0 and onnx in a venv in the cache, `--target_platform arm --optimization_style Fixed`), and
+  the app prefers `model.int8.ort` over `model.int8.onnx`. Measured with the command line tool, two runs each:
+  English 7.0 s to 4.7-5.1 s, Russian 6.7-7.0 s to 4.6-5.0 s, the same text. The rest is ONNX Runtime
+  preparing the int8 weights for the CPU, whatever the file. To hide it, focus moving to a text field
+  (an EditText, which browsers' fields report too; not password fields) starts loading the chosen
+  language's model, so it's usually ready when the button is held.
 - **Text goes to the field that had focus when you let go**, and only if it still has focus when the words
   are ready; never into a password field.
 - **Debugging:** with a file `files/asr/debug` on the monitor, the last recording is kept as

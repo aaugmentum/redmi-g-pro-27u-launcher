@@ -26,9 +26,10 @@ import java.util.function.Consumer;
  * Speech to text on the monitor: sherpa-onnx with one NVIDIA NeMo CTC model per language. English is Parakeet
  * TDT-CTC 110M; Russian is the FastConformer for ten European languages, which also writes accented English in
  * Cyrillic, hence the English model. Each runs at about 0.35x real time in 250 MB on the Redmi G Pro 27U. The
- * install script puts each language's {@code model.int8.onnx} and {@code tokens.txt} in the app's external files
- * dir, under asr/en/ and asr/ru/. One model is loaded at a time, on one background thread: loading takes six to ten
- * seconds, and key events time out after 500 ms. The model is released after ten idle minutes.
+ * install script puts each language's model ({@code model.int8.ort}, or {@code model.int8.onnx} when it couldn't
+ * convert it) and {@code tokens.txt} in the app's external files dir, under asr/en/ and asr/ru/. One model is loaded at a time, on one background thread: loading takes six to ten
+ * seconds (four to five from .ort), and key events time out after 500 ms. VoiceInput starts it early, when a text
+ * field gets focus. The model is released after ten idle minutes.
  */
 final class SpeechEngine {
 
@@ -38,6 +39,8 @@ final class SpeechEngine {
     static final String[] LANGUAGES = {"en", "ru"};
 
     private final Context context;
+    /** asr/ in the app's external files dir, once shared storage is there. */
+    private volatile File dir;
     private final Handler worker;
     private final Runnable release = this::releaseNow;
     /** Worker thread only: the loaded model and its language. */
@@ -55,7 +58,7 @@ final class SpeechEngine {
         worker = new Handler(thread.getLooper());
     }
 
-    /** The language's model is on the monitor and loads (as far as is known yet). */
+    /** The language's model is on the monitor and loads (as far as is known yet). Main thread: a few stats. */
     boolean usable(String language) {
         return !broken.contains(language) && dir() != null && model(language).isFile() && tokens(language).isFile();
     }
@@ -109,12 +112,17 @@ final class SpeechEngine {
 
     /** asr/ in the app's external files dir; null while shared storage isn't there (early at boot). */
     private File dir() {
-        File files = context.getExternalFilesDir(null);
-        return files == null ? null : new File(files, "asr");
+        if (dir == null) {
+            File files = context.getExternalFilesDir(null);   // a binder call: done until it works, then kept
+            if (files != null) dir = new File(files, "asr");
+        }
+        return dir;
     }
 
+    /** ONNX Runtime's own format if the install script could make it (it loads about 2 s sooner), else the ONNX. */
     private File model(String language) {
-        return new File(new File(dir(), language), "model.int8.onnx");
+        File ort = new File(new File(dir(), language), "model.int8.ort");
+        return ort.isFile() ? ort : new File(new File(dir(), language), "model.int8.onnx");
     }
 
     private File tokens(String language) {
